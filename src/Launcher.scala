@@ -5,7 +5,7 @@ import scala.io.Source
 
 object Launcher extends App {
 
-  val path = "scripts/test.scl"
+  val path = "src/test.scl"
 
   val load = Source.fromFile(new File(path))
   val tokens = Lexer(load.mkString)

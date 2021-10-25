@@ -1,6 +1,6 @@
-import model.Model._
-import parsing.{Actions, And, As, Define, Dereference, Display, Divide, EndProgram, EndWhile, Equals, Equiv, False, Identifier, If, Minus, Modulo, Multiply, Number, Or, Plus, Set, Token, TokenType, True, Variables, While}
-import parsing.Token._
+import Model._
+import Token.TokenType._
+import Token._
 
 import scala.annotation.tailrec
 
@@ -12,19 +12,24 @@ object Parser {
   // the computation will return a failure on that type.
   // However, if the computation is successful, it will return a success which wraps all the found instances of that type
   // plus the remaining tokens that were captured by the parsing computation
-  trait Parsed[T] {
+  sealed trait Parsed[T] {
     val targets: List[T]
     val tokens: List[Token]
-
-    implicit val id = (t: List[Token]) => t
-
-
     // advances on success, escapes on failure
     def |>[B](f: (T, List[Token]) => (B, List[Token])): Parsed[B] = {
       this match {
         case Success(targets, tokens) =>
           val (b, tkns) = f(targets.head, tokens)
           Success(List(b), tkns)
+        case Failure(msg) => Failure(msg)
+      }
+    }
+
+    def +|>[B](f: (List[T], List[Token]) => (B, List[Token])): Parsed[B] = {
+      this match {
+        case Success(targets, tokens) =>
+          val (b, t1) = f(targets, tokens)
+          Success(b, t1)
         case Failure(msg) => Failure(msg)
       }
     }
@@ -52,49 +57,71 @@ object Parser {
       }
     }
 
+    // FIXME: This is causing issue with parsing if statement
+    def +||>[B](f: (List[T], List[Token]) => Parsed[B]): Parsed[B] = {
+      this match {
+        case Success(targets, tokens) =>
+          f(targets, tokens)
+        case Failure(msg) => Failure(msg)
+      }
+    }
 
+    def ?||>[B](s: (T, List[Token]) => Parsed[B])(n: List[Token] => Parsed[B]): Parsed[B] = {
+      this match {
+        case Success(targets, tokens) =>
+          s(targets.head, tokens)
+        case Null(tokens) =>
+          n(tokens)
+        case Failure(msg) => Failure(msg)
+      }
+    }
+
+    def *||>[B](s: (List[T], List[Token]) => Parsed[B])(n: List[Token] => Parsed[B]): Parsed[B] = {
+      this match {
+        case Success(targets, tokens) =>
+          s(targets, tokens)
+        case Null(tokens) =>
+          n(tokens)
+        case Failure(msg) => Failure(msg)
+      }
+    }
   }
 
   case class Success[T](targets: List[T], tokens: List[Token]) extends Parsed[T]
-
   object Success {
     def apply[T](t: T, tokens: List[Token]): Success[T] = {
       Success(List(t), tokens)
     }
   }
-
   case class Failure[T](msg: String) extends Parsed[T] {
     val targets: List[T] = List.empty[T]
     val tokens: List[Token] = List.empty[Token]
   }
-
   case class Null[T](tokens: List[Token]) extends Parsed[T] {
     val targets: List[T] = List.empty[T]
   }
 
   def parse(ts: List[Token]): Parsed[Program] = {
-    ts.typeOfFirst match {
-      case Variables => getVariableDeclarations(ts.tail) match {
-        case Success(declarations, dTokens) => getActions(dTokens)(stopAt = EndProgram) match {
-          case Success(actions, aTokens) =>
-            Success(List(Program(declarations, actions)), aTokens)
+    ts.typeOfFirst(2) match {
+      case List(BeginProgram, Variables) => getVariableDeclarations(ts.drop(2)) +||> { (variables, t1) =>
+        getActions(t1)(EndProgram) match {
+          case Success(actions, t2) => Success(Program(variables, actions), t2)
           case Failure(msg) => Failure(msg)
         }
-        case Failure(msg) => Failure(msg)
       }
-      case _ => Failure[Program]("")
+      case _ => Failure("Failed to Parse Program")
     }
   }
 
   @tailrec
   def getVariableDeclarations(ts: List[Token], ds: List[VariableDeclaration] = List.empty): Parsed[VariableDeclaration] = {
     ts.typeOfFirst(4) match {
-      case List(Define, Identifier, As, Number) => // if the first four tokens match the pattern proceed
+      case List(Define, Identifier, As, Number) | List(Define, Identifier, As, Identifier) => // if the first four tokens match the pattern proceed
         val id = IDENTIFIER(ts(1).lexeme) // grab the id
         val num = VALUE(ts(3).lexeme) // grab the value
         getVariableDeclarations(ts.drop(4), ds :+ VariableDeclaration(id, num)) // recurse and look for more declarations
       case List(Actions, _*) => Success(ds, ts.tail) // if the first token is an actions keyword, we can escape this section
-      case _ => Failure("Variable") // anything else is a failure
+      case _ => Failure("Failed to Parse Variable Declarations") // anything else is a failure
     }
   }
 
@@ -103,14 +130,17 @@ object Parser {
   : Parsed[Action] = {
     tokens.head.tokenType match {
       case Set =>
-        getSet(tokens.tail) ||> { (statement, t1) =>
-          getActions(t1, actions :+ statement)(EndProgram)
+        getSet(tokens.tail) ||> { (stmt, ts) =>
+          getActions(ts, actions :+ stmt)(EndProgram)
         }
       case While =>
-        getWhile(tokens.tail) ||> { (statement, t1) =>
-          getActions(t1, actions :+ statement)(EndProgram)
+        getWhile(tokens.tail) ||> { (stmt, ts) =>
+          getActions(ts, actions :+ stmt)(EndProgram)
         }
-      case If => ???
+      case If =>
+        getIf(tokens.tail) ||> { (stmt, ts) =>
+          getActions(ts, actions :+ stmt)(EndProgram)
+        }
       // getIf -> getActions
       case Display => ???
       // getDisplay -> getActions
@@ -134,16 +164,65 @@ object Parser {
   // TODO: This won'
   def getWhile(ts: List[Token]): Parsed[WhileStatement] = {
     getCondition(ts) ||> { (cond, t2) =>
-      getActions(t2)(stopAt = EndWhile) match {
-        case Success(actions, t3) => Success(WhileStatement(cond, actions), t3)
-        case Failure(msg) => Failure(msg)
+      t2.typeOfFirst match {
+        case Do => getActions(t2.tail)(stopAt = EndWhile) match {       // this actually can capture nested while loops, because if an internal while loop is found, it will consume its own endWhileToken
+          case Success(actions, t3) => Success(WhileStatement(cond, actions), t3)
+          case Failure(msg) => Failure(msg)
+        }
+        case _ => Failure("Do Keyword Expected")
       }
+    }
+  }
+
+  def getIf(ts: List[Token]): Parsed[IfStatement] = {
+    getCondition(ts) ||> { (condition, t1) =>
+      t1.typeOfFirst match {
+        case Then =>
+          getActions(t1.tail)(EndIf) +||> { (actions, t2) =>
+            println(s"ACTIONS FOUND = $actions")
+            getElseIf(t2).*||> { (elifs, t3a) =>  // in the case of one or many elifs
+              getElse(t3a).?|> { (els, t4a) =>  // in the case of some elifs and some els
+                IfStatement(condition, actions, Some(elifs), Some(els)) -> t4a
+              } { t4b =>  // in the case of some elifs and some els
+                IfStatement(condition, actions, Some(elifs), None) -> t4b
+              }
+            } { t3b =>  // in the case of no elifs
+              getElse(t3b).?|> { (els, t4a) =>  // in the case of no elifs and some els
+                IfStatement(condition, actions, None, Some(els)) -> t4a
+              } { t4b =>  // in the case of no elifs and no els
+                IfStatement(condition, actions, None, None) -> t4b
+              }
+            }
+          }
+        case _ => Failure("'Then' Keyword Expected")
+      }
+
+    }
+  }
+
+  def getElseIf(ts: List[Token]): Parsed[ElseIfStatement] = {
+    ts.typeOfFirst(2) match {
+      case List(Else, If) => getCondition(ts.drop(2)) ||> { (condition, t1) =>
+        getActions(t1)(EndElseIf) +|> { (actions, t2) =>
+          ElseIfStatement(condition, actions) -> t2
+        }
+      }
+      case _ => Null(ts)
+    }
+  }
+
+  def getElse(ts: List[Token]): Parsed[ElseStatement] = {
+    ts.typeOfFirst match {
+      case Else => getActions(ts.tail)(EndElse) +|> { (actions, t1) =>
+        ElseStatement(actions) -> t1
+      }
+      case _ => Null(ts)
     }
   }
 
   def getCondition(ts: List[Token]): Parsed[Condition] = {
     // getSubCondition -?> getConditionalArguments
-    getSubCondition(ts).||> { (subcond, t2) =>
+    getSubCondition(ts)||> { (subcond, t2) =>
       getConditionalArgument(t2).?|> { (arg, t3) =>
         Condition(subcond, Some(arg)) -> t3
       } { t4 =>
@@ -274,7 +353,7 @@ object Parser {
       case Identifier => Success(IDENTIFIER(ts.head.lexeme), ts.tail)
       case True => Success(TRUE, ts.tail)
       case False => Success(FALSE, ts.tail)
-      case _ => Failure("parsing.Numeric, parsing.Identifier, parsing.True, or parsing.False expected")
+      case _ => Failure("parsing.Numeric, Identifier, True, or False expected")
     }
   }
 

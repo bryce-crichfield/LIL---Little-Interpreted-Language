@@ -1,5 +1,4 @@
-import parsing.Token
-import parsing.Token._
+import Token._
 
 import scala.collection.mutable.ListBuffer
 
