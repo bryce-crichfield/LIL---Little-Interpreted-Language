@@ -4,55 +4,57 @@ object Model {
 
   case class Program(variableDeclarations: List[VariableDeclaration], actions: List[Action])
 
-  case class VariableDeclaration(IDENTIFIER1: IDENTIFIER, value: VALUE) {
-
-  }
+  case class VariableDeclaration(IDENTIFIER1: IDENTIFIER, expression: Expression)
 
   sealed trait Action
-  case class DisplayStatement(expressions: List[Expression]) extends Action
+
+  case class DisplayStatement(expression: Expression) extends Action
+
   case class AssignmentStatement(IDENTIFIER: IDENTIFIER, expression: Expression) extends Action
-  case class IfStatement(condition: Condition,
+
+  case class IfStatement(condition: Conditional,
                          actions: List[Action],
                          ElseIfStatements: Option[List[ElseIfStatement]],
                          ElseStatement: Option[ElseStatement]
                         ) extends Action
-  case class ElseIfStatement(condition: Condition, actions: List[Action])
+
+  case class ElseIfStatement(condition: Conditional, actions: List[Action])
+
   case class ElseStatement(actions: List[Action])
-  case class WhileStatement(condition: Condition, actions: List[Action]) extends Action
-  case class Condition(subcondition: SubCondition, conditionalArgument: Option[ConditionalArgument]) extends SubCondition
-  case class ConditionalArgument(booleanOperator: BooleanOperator, subcondition: SubCondition)
 
-  sealed trait SubCondition
-  case class SubConditionalExpression(expressionA: Expression, subConditionalOperator: SubConditionalOperator, expressionB: Expression) extends SubCondition
+  case class WhileStatement(condition: Conditional, actions: List[Action]) extends Action
 
-  sealed trait BooleanOperator
-  case object AND extends BooleanOperator with ExpressionOperator
-  case object OR extends BooleanOperator with ExpressionOperator
+  sealed trait Expression
 
-  sealed trait SubConditionalOperator
+  case class EXPRESSION(expression: Expression, operator: TokenType, term: Term) extends Expression
 
-  sealed trait RelationalOperator extends SubConditionalOperator // lots of these??
-  case object EQUIVALENCE extends SubConditionalOperator
+  sealed trait Term extends Expression
 
-  // TODO: Right there isn no support for arbitrarily long expressions such as 1 + 1 + 1 + 1
-  case class Expression(termA: Term, expressionArgument: Option[ExpressionArgument]) extends Element
-  case class ExpressionArgument(expressionOperator: ExpressionOperator, term: Term)
+  case class TERM(term: Term, operator: TokenType, factor: Factor) extends Term
 
-  sealed trait ExpressionOperator
-  case object PLUS extends ExpressionOperator
-  case object MINUS extends ExpressionOperator with UnaryOperator
-  case class Term(unary: Unary, termArgument: Option[TermArgument])
-  case class TermArgument(termOperator: TokenType, unary: Unary)
-  case class Unary(unaryOperator: Option[UnaryOperator], element: Element)
+  sealed trait Factor extends Term
 
-  sealed trait UnaryOperator
-  case object DEREFERENCE extends UnaryOperator
-  case object NEGATE extends UnaryOperator
+  case class VALUE(value: String) extends Factor
 
-  trait Element extends SubCondition
-  case class IDENTIFIER(value: String) extends Element
-  case class VALUE(value: String) extends Element
-  case object TRUE extends Element
-  case object FALSE extends Element
+  object VALUE {
+    def apply(token: Token): VALUE =
+      VALUE(token.lexeme)
+  }
+
+  case class IDENTIFIER(value: String) extends Factor
+
+  object IDENTIFIER {
+    def apply(token: Token): IDENTIFIER =
+      IDENTIFIER(token.lexeme)
+  }
+
+  case class FACTOR(expression: Expression) extends Factor
+
+  case class UNARY(operator: TokenType, factor: Factor) extends Factor
+
+  trait Conditional
+
+  case class CONDITIONAL(expressionA: Expression, operator: TokenType, expressionB: Expression) extends Expression
+
 
 }

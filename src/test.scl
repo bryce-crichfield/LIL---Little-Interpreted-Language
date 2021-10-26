@@ -1,16 +1,6 @@
 beginProgram
 variables
-define x as 4
+define x as 1
 actions
-while x do
-if x then
-set x = 4
-endIf
-else if x
-set x = 4
-endElseIf
-else
-set x = 3
-endElse
-endWhile
+display(2)
 endProgram
