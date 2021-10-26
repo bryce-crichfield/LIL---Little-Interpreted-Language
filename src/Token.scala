@@ -16,10 +16,12 @@ object Token {
   }
 
   sealed trait TokenType
+
   object TokenType {
     private val alpha = """([a-zA-Z])+""".r
     private val numeric = """[-]?(\d+[.]\d+|\d+)""".r
     private val string = """["]([a-zA-Z0-9])*["]""".r
+
     def apply(lexeme: String): TokenType = lexeme match {
       case "begin" => Begin
       case "end" => End
@@ -65,48 +67,91 @@ object Token {
       case _ => TokenError
     }
   }
+
   case object Begin extends TokenType
+
   case object End extends TokenType
+
   case object Program extends TokenType
+
   case object Variables extends TokenType
+
   case object Define extends TokenType
+
   case object Actions extends TokenType
+
   case object Identifier extends TokenType
+
   case object Display extends TokenType
+
   case object Pointer extends TokenType
+
   case object Comma extends TokenType
+
   case object Set extends TokenType
+
   case object To extends TokenType
+
   case object Equals extends TokenType
+
   case object If extends TokenType
+
   case object Then extends TokenType
+
   case object Else extends TokenType
+
   case object While extends TokenType
+
   case object Do extends TokenType
+
   case object Or extends TokenType
+
   case object And extends TokenType
+
   case object LParen extends TokenType
+
   case object RParen extends TokenType
+
   case object Equiv extends TokenType
+
   case object NEquiv extends TokenType
+
   case object Plus extends TokenType
+
   case object Minus extends TokenType
+
   case object Multiply extends TokenType
+
   case object Divide extends TokenType
+
   case object Modulo extends TokenType
+
   case object Dereference extends TokenType
+
   case object Negate extends TokenType
+
   case object Quote extends TokenType
+
   case object True extends TokenType
+
   case object False extends TokenType
+
   case object LsThan extends TokenType
+
   case object GrThan extends TokenType
+
   case object LsEqThan extends TokenType
+
   case object GrEqThan extends TokenType
+
   case object Number extends TokenType
+
   case object String extends TokenType
+
   case object As extends TokenType
+
   case object EOF extends TokenType
+
   case object TokenError extends TokenType
 
 }

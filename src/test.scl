@@ -3,7 +3,7 @@ program
    set x to x - 1
    define y as 10
    display(y)
-   while x && y do
+   while (x && y) do
         set x to x + 1
         display(x)
    end

@@ -27,29 +27,33 @@ object Model {
   case class WhileStatement(condition: Expression, actions: List[Statement]) extends Statement
 
   sealed trait Expression
+
   sealed trait Term extends Expression
+
   sealed trait Factor extends Term
 
 
   case class EXPRESSION(expression: Expression, operator: TokenType, term: Term) extends Expression
+
   case class TERM(term: Term, operator: TokenType, factor: Factor) extends Term
+
   case class FACTOR(expression: Expression) extends Factor
 
   case class VALUE(value: String) extends Factor
+
   object VALUE {
     def apply(token: Token): VALUE =
       VALUE(token.lexeme)
   }
+
   case class IDENTIFIER(value: String) extends Factor
+
   object IDENTIFIER {
     def apply(token: Token): IDENTIFIER =
       IDENTIFIER(token.lexeme)
   }
+
   case class UNARY(operator: TokenType, factor: Factor) extends Factor
-
-
-
-
 
 
 }

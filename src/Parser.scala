@@ -87,16 +87,20 @@ object Parser {
       }
     }
   }
+
   case class Success[A](targets: List[A], tokens: List[Token]) extends Parsed[A]
+
   object Success {
     def apply[A](t: A, tokens: List[Token]): Success[A] = {
       Success(List(t), tokens)
     }
   }
+
   case class Failure[A](msg: String) extends Parsed[A] {
     val targets: List[A] = List.empty[A]
     val tokens: List[Token] = List.empty[Token]
   }
+
   case class Null[A](tokens: List[Token]) extends Parsed[A] {
     val targets: List[A] = List.empty[A]
   }
@@ -133,16 +137,19 @@ object Parser {
         }
       case Set =>
         parseAssignment(tokens.tail) ||> { (stmt, ts) =>
-          parseStatements(ts, actions :+ stmt) }
+          parseStatements(ts, actions :+ stmt)
+        }
       case While =>
         parseWhile(tokens.tail) ||> { (stmt, ts) =>
-          parseStatements(ts, actions :+ stmt) }
+          parseStatements(ts, actions :+ stmt)
+        }
       case If =>
         parseIf(tokens.tail) ||> { (stmt, ts) =>
-          parseStatements(ts, actions :+ stmt) }
+          parseStatements(ts, actions :+ stmt)
+        }
       case Display =>
         parseDisplay(tokens.tail) ||> { (stmt, ts) =>
-          parseStatements(ts, actions:+ stmt)
+          parseStatements(ts, actions :+ stmt)
         }
       case End => Success(actions, tokens.tail)
       case _ => Failure("Set, while, if, or display")
@@ -163,7 +170,7 @@ object Parser {
   private def parseWhile(ts: List[Token]): Parsed[WhileStatement] = {
     parseExpression(ts) ||> { (cond, t2) =>
       t2.typeOfFirst match {
-        case Do => parseStatements(t2.tail) match {       // this actually can capture nested while loops, because if an internal while loop is found, it will consume its own endWhileToken
+        case Do => parseStatements(t2.tail) match { // this actually can capture nested while loops, because if an internal while loop is found, it will consume its own endWhileToken
           case Success(actions, t3) => Success(WhileStatement(cond, actions), t3)
           case Failure(msg) => Failure(msg)
         }
@@ -178,16 +185,16 @@ object Parser {
         case Then =>
           parseStatements(t1.tail) +||> { (actions, t2) =>
             println(s"ACTIONS FOUND = $actions")
-            parseElseIf(t2).*||> { (elifs, t3a) =>  // in the case of one or many elifs
-              parseElse(t3a).?|> { (els, t4a) =>  // in the case of some elifs and some els
+            parseElseIf(t2).*||> { (elifs, t3a) => // in the case of one or many elifs
+              parseElse(t3a).?|> { (els, t4a) => // in the case of some elifs and some els
                 IfStatement(condition, actions, Some(elifs), Some(els)) -> t4a
-              } { t4b =>  // in the case of some elifs and some els
+              } { t4b => // in the case of some elifs and some els
                 IfStatement(condition, actions, Some(elifs), None) -> t4b
               }
-            } { t3b =>  // in the case of no elifs
-              parseElse(t3b).?|> { (els, t4a) =>  // in the case of no elifs and some els
+            } { t3b => // in the case of no elifs
+              parseElse(t3b).?|> { (els, t4a) => // in the case of no elifs and some els
                 IfStatement(condition, actions, None, Some(els)) -> t4a
-              } { t4b =>  // in the case of no elifs and no els
+              } { t4b => // in the case of no elifs and no els
                 IfStatement(condition, actions, None, None) -> t4b
               }
             }
@@ -236,7 +243,6 @@ object Parser {
       parseTerm(t1.tail) |> { (termB, t2) =>
         EXPRESSION(termA, tokenType, termB).asInstanceOf[Expression] -> t2
       }
-    // this assumes that the first argument of the expression will always be a term, not an expression????
     parseTerm(ts) ||> { (termA, t1) =>
       t1.typeOfFirst match {
         case Plus => Expression(termA, t1, Plus)
@@ -250,8 +256,8 @@ object Parser {
   private def parseTerm(ts: List[Token]): Parsed[Term] = {
     val Term = (factorA: Factor, t1: List[Token], tokenType: TokenType) =>
       parseFactor(t1.tail) |> { (factorB, t2) =>
-      TERM(factorA, tokenType, factorB).asInstanceOf[Term] -> t2
-    }
+        TERM(factorA, tokenType, factorB).asInstanceOf[Term] -> t2
+      }
     parseFactor(ts) ||> { (factorA, t1) =>
       t1.typeOfFirst match {
         case Multiply => Term(factorA, t1, Multiply)
@@ -268,7 +274,7 @@ object Parser {
       }
     }
   }
-  //TODO: ADD TRUE AND FALSE
+
   private def parseFactor(ts: List[Token]): Parsed[Factor] = {
     val Unary = (tokenType: TokenType) => parseFactor(ts.tail) |> { (factor, t1) =>
       UNARY(tokenType, factor).asInstanceOf[Factor] -> t1
@@ -286,6 +292,8 @@ object Parser {
       case Dereference => Unary(Dereference)
       case Pointer => Unary(Pointer)
       case Minus => Unary(Minus)
+      case True => ???
+      case False => ???
       case _ => Failure("Failed to Parse Factor")
     }
   }
@@ -306,7 +314,7 @@ object Parser {
 
   private def errorMessage(source: String)(token: Token, expected: String = ""): String = {
     val out = s"Failed to parse $source\nFound '${token.lexeme}' of [type = ${token.tokenType}] at {line = ${token.lineNumber}}"
-    if(expected != "") {
+    if (expected != "") {
       out + s"\nExpected ($expected) at {${token.lineNumber}} instead of '${token.lexeme}'"
     } else {
       out
