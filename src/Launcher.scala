@@ -13,10 +13,10 @@ object Launcher extends App {
   val program = Parser.parse(tokens)
   program match {
     case Success(targets, tokens) =>
-      val declaratons = targets.head.variableDeclarations
-      val actions = targets.head.actions
-      println("[ DECLARATIONS ]")
-      declaratons.foreach(println)
+//      val declaratons = targets.head.variableDeclarations
+      val actions = targets.head.statements
+//      println("[ DECLARATIONS ]")
+//      declaratons.foreach(println)
       println("[ ACTIONS ]")
       actions.foreach(println)
     case Failure(msg) => println(msg)

@@ -21,29 +21,28 @@ object Token {
     private val numeric = """[-]?(\d+[.]\d+|\d+)""".r
     private val string = """["]([a-zA-Z0-9])*["]""".r
     def apply(lexeme: String): TokenType = lexeme match {
-      case "beginProgram" => BeginProgram
-      case "endProgram" => EndProgram
+      case "begin" => Begin
+      case "end" => End
+      case "program" => Program
       case "variables" => Variables
       case "define" => Define
       case "actions" => Actions
       case "display" => Display
       case "," => Comma
       case "set" => Set
+      case "to" => To
       case "=" => Equals
       case "if" => If
       case "then" => Then
       case "else" => Else
-      case "endIf" => EndIf
-      case "endElseIf" => EndElseIf
-      case "endElse" => EndElse
       case "while" => While
       case "do" => Do
-      case "endwhile" => EndWhile
       case "||" => Or
       case "&&" => And
       case "(" => LParen
       case ")" => RParen
       case "==" => Equiv
+      case "~=" => NEquiv
       case "+" => Plus
       case "-" => Minus
       case "*" => Multiply
@@ -66,8 +65,9 @@ object Token {
       case _ => TokenError
     }
   }
-  case object BeginProgram extends TokenType
-  case object EndProgram extends TokenType
+  case object Begin extends TokenType
+  case object End extends TokenType
+  case object Program extends TokenType
   case object Variables extends TokenType
   case object Define extends TokenType
   case object Actions extends TokenType
@@ -76,21 +76,19 @@ object Token {
   case object Pointer extends TokenType
   case object Comma extends TokenType
   case object Set extends TokenType
+  case object To extends TokenType
   case object Equals extends TokenType
   case object If extends TokenType
   case object Then extends TokenType
   case object Else extends TokenType
-  case object EndIf extends TokenType
-  case object EndElseIf extends TokenType
-  case object EndElse extends TokenType
   case object While extends TokenType
   case object Do extends TokenType
-  case object EndWhile extends TokenType
   case object Or extends TokenType
   case object And extends TokenType
   case object LParen extends TokenType
   case object RParen extends TokenType
   case object Equiv extends TokenType
+  case object NEquiv extends TokenType
   case object Plus extends TokenType
   case object Minus extends TokenType
   case object Multiply extends TokenType

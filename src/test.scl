@@ -1,6 +1,10 @@
-beginProgram
-variables
-define x as 1
-actions
-display(2)
-endProgram
+program
+   define x as 1
+   set x to x - 1
+   define y as 10
+   display(y)
+   while x && y do
+        set x to x + 1
+        display(x)
+   end
+end
