@@ -1,8 +1,15 @@
 program
     procedure fibonacci takes n does
-        display(n)
+        define a as 0
+        define b as 1
+        define i as 1
+        while i < n do
+            define c as a
+            set a to b
+            set b to a + 1
+        end
     end
     define x as fibonacci(n)
-    (2)
+    x + 1
     display(fib)
 end

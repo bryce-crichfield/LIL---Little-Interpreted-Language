@@ -157,7 +157,8 @@ object Parser {
           parseProcedure(tokens.tail) ||> { (stmt, ts) =>
             parseStatements(ts, actions :+ stmt)
           }
-        case End => Success(actions, tokens.tail)
+        case End =>
+          Success(actions.filterNot(_.isInstanceOf[Expression]), tokens.tail) // the filter avoids weird issues with useless expressions being allowed to sit around
         case _ => Failure(errorMessage("statement")(tokens.head, "define, set, while, if, display, or end"))
       }
     }
