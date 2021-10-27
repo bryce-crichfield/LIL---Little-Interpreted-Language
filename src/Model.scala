@@ -1,7 +1,5 @@
 import Token.TokenType
 
-import javax.naming.ldap.ExtendedRequest
-
 object Model {
 
   case class PROGRAM(statements: List[Statement])
@@ -12,9 +10,12 @@ object Model {
   case class ProcedureDefinition(IDENTIFIER: IDENTIFIER,
                                  arguments: List[Argument],
                                  statements: List[Statement],
-                       ) extends Statement
+                                ) extends Statement
+
   case class Argument(IDENTIFIER: IDENTIFIER)
+
   case class ReturnStatement(expression: Expression)
+
   case class VariableDeclaration(IDENTIFIER1: IDENTIFIER, expression: Expression) extends Statement
 
   case class DisplayStatement(expression: Expression) extends Statement
@@ -40,6 +41,7 @@ object Model {
   sealed trait Factor extends Term
 
   case class ProcedureCall(IDENTIFIER: IDENTIFIER, arguments: List[Argument]) extends Expression
+
   case class EXPRESSION(expression: Expression, operator: TokenType, term: Term) extends Expression
 
   case class TERM(term: Term, operator: TokenType, factor: Factor) extends Term

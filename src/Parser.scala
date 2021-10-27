@@ -1,9 +1,5 @@
 import Model._
-import Parser.parseFactor
-import Token.TokenType._
-import Token.{Program, Procedure, _}
-
-import scala.annotation.tailrec
+import Token.{Procedure, Program, _}
 
 object Parser {
 

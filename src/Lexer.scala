@@ -1,9 +1,8 @@
-import Token._
 
-import scala.collection.mutable.ListBuffer
 
 object Lexer {
   private val regex = """->|==|<=|>=|<|>|=|&&|[|]{2}|~|,|@|%|[+]|[*]|/|[(]|[)]|["]([a-zA-Z])*["]|([a-zA-Z0-9])+|[-]?(\d+[.]\d+|\d+)|[-]""".r
+
   //  private val regex = """(\w)+""".r
   def apply(input: String): List[Token] = {
     val lines = input.split("\n")
