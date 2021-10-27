@@ -1,7 +1,7 @@
 import Model._
 import Parser.parseFactor
 import Token.TokenType._
-import Token.{Program, _}
+import Token.{Program, Procedure, _}
 
 import scala.annotation.tailrec
 
@@ -115,7 +115,7 @@ object Parser {
     }
   }
 
-  private def parseVariableDeclarations(ts: List[Token]): Parsed[VariableDeclaration] = {
+  private def parseVariableDeclaration(ts: List[Token]): Parsed[VariableDeclaration] = {
     ts.typeOfFirst(2) match {
       case List(Identifier, As) =>
         val id = IDENTIFIER(ts.tail.head.lexeme)
@@ -126,34 +126,42 @@ object Parser {
     }
   }
 
-
   private def parseStatements(tokens: List[Token], actions: List[Statement] = List.empty)
   : Parsed[Statement] = {
-    tokens.head.tokenType match {
-      case Define =>
-        parseVariableDeclarations(tokens.tail) +||> { (declarations, ts) =>
-          val addition = (actions :+ declarations).asInstanceOf[List[Statement]]
-          parseStatements(ts, addition)
-        }
-      case Set =>
-        parseAssignment(tokens.tail) ||> { (stmt, ts) =>
-          parseStatements(ts, actions :+ stmt)
-        }
-      case While =>
-        parseWhile(tokens.tail) ||> { (stmt, ts) =>
-          parseStatements(ts, actions :+ stmt)
-        }
-      case If =>
-        parseIf(tokens.tail) ||> { (stmt, ts) =>
-          parseStatements(ts, actions :+ stmt)
-        }
-      case Display =>
-        parseDisplay(tokens.tail) ||> { (stmt, ts) =>
-          parseStatements(ts, actions :+ stmt)
-        }
-      case End => Success(actions, tokens.tail)
-      case _ => Failure("Set, while, if, or display")
+    // attempt to parse as expression, then statement
+    parseExpression(tokens) match {
+      case Success(expression, ts) =>
+        parseStatements(ts, actions :+ expression.head.asInstanceOf[Statement])
+      case _ => tokens.head.tokenType match {
+        case Define =>
+          parseVariableDeclaration(tokens.tail) ||> { (declaration, ts) =>
+            parseStatements(ts, actions :+ declaration)
+          }
+        case Set =>
+          parseAssignment(tokens.tail) ||> { (stmt, ts) =>
+            parseStatements(ts, actions :+ stmt)
+          }
+        case While =>
+          parseWhile(tokens.tail) ||> { (stmt, ts) =>
+            parseStatements(ts, actions :+ stmt)
+          }
+        case If =>
+          parseIf(tokens.tail) ||> { (stmt, ts) =>
+            parseStatements(ts, actions :+ stmt)
+          }
+        case Display =>
+          parseDisplay(tokens.tail) ||> { (stmt, ts) =>
+            parseStatements(ts, actions :+ stmt)
+          }
+        case Procedure =>
+          parseProcedure(tokens.tail) ||> { (stmt, ts) =>
+            parseStatements(ts, actions :+ stmt)
+          }
+        case End => Success(actions, tokens.tail)
+        case _ => Failure(errorMessage("statement")(tokens.head, "define, set, while, if, display, or end"))
+      }
     }
+
   }
 
   private def parseAssignment(tokens: List[Token]): Parsed[AssignmentStatement] = {
@@ -163,7 +171,7 @@ object Parser {
           val id = IDENTIFIER(tokens.head.lexeme)
           AssignmentStatement(id, expression) -> t1
         }
-      case _ => Failure("Identifier or equals expected")
+      case _ => Failure(errorMessage("assignment")(tokens.head, "identifier or to"))
     }
   }
 
@@ -174,7 +182,7 @@ object Parser {
           case Success(actions, t3) => Success(WhileStatement(cond, actions), t3)
           case Failure(msg) => Failure(msg)
         }
-        case _ => Failure("Do Keyword Expected")
+        case _ => Failure(errorMessage("while")(ts.head, "do"))
       }
     }
   }
@@ -184,7 +192,6 @@ object Parser {
       t1.typeOfFirst match {
         case Then =>
           parseStatements(t1.tail) +||> { (actions, t2) =>
-            println(s"ACTIONS FOUND = $actions")
             parseElseIf(t2).*||> { (elifs, t3a) => // in the case of one or many elifs
               parseElse(t3a).?|> { (els, t4a) => // in the case of some elifs and some els
                 IfStatement(condition, actions, Some(elifs), Some(els)) -> t4a
@@ -199,9 +206,8 @@ object Parser {
               }
             }
           }
-        case _ => Failure("'Then' Keyword Expected")
+        case _ => Failure(errorMessage("if statement")(t1.head, "then"))
       }
-
     }
   }
 
@@ -238,19 +244,52 @@ object Parser {
     }
   }
 
+  private def parseProcedure(ts: List[Token]): Parsed[ProcedureDefinition] = {
+    ts.typeOfFirst(2) match {
+      case List(Identifier, Takes) => parseArguments(ts.drop(2)) +||> { (arguments, t1) =>
+        t1.typeOfFirst match {
+          case Does => parseStatements(t1.tail) +|> { (statements, t2) =>
+            ProcedureDefinition(IDENTIFIER(ts.head), arguments, statements) -> t2
+          }
+          case _ => Failure(errorMessage("procedure")(t1.head, "does"))
+        }
+      }
+      case _ => Failure(errorMessage("procedure")(ts.head, "identifier, takes"))
+    }
+  }
+
+  private def parseArguments(ts: List[Token], arguments: List[Argument] = List.empty): Parsed[Argument] = {
+    ts.typeOfFirst(2) match {
+      case List(Identifier, Comma) =>
+        parseArguments(ts.drop(2), arguments :+ Argument(IDENTIFIER(ts.head)))
+      case List(Identifier, _) =>
+        parseArguments(ts.tail, arguments :+ Argument(IDENTIFIER(ts.head)))
+      case _ => Success(arguments, ts)
+    }
+  }
+
   private def parseExpression(ts: List[Token]): Parsed[Expression] = {
     val Expression = (termA: Term, t1: List[Token], tokenType: TokenType) =>
       parseTerm(t1.tail) |> { (termB, t2) =>
         EXPRESSION(termA, tokenType, termB).asInstanceOf[Expression] -> t2
       }
-    parseTerm(ts) ||> { (termA, t1) =>
-      t1.typeOfFirst match {
-        case Plus => Expression(termA, t1, Plus)
-        case Minus => Expression(termA, t1, Minus)
-        case Or => Expression(termA, t1, Or)
-        case _ => Success(termA, t1)
+    ts.typeOfFirst(2) match {
+      case List(Identifier, LParen) => parseArguments(ts.drop(2)) +||> { (arguments, t2) =>
+        t2.typeOfFirst match {
+          case RParen => Success(ProcedureCall(IDENTIFIER(ts.head), arguments), t2.tail)
+          case _ => Failure(errorMessage("procedure call as expression")(t2.head, (")")))
+        }
+      }
+      case _ => parseTerm(ts) ||> { (termA, t1) =>
+        t1.typeOfFirst match {
+          case Plus => Expression(termA, t1, Plus)
+          case Minus => Expression(termA, t1, Minus)
+          case Or => Expression(termA, t1, Or)
+          case _ => Success(termA, t1)
+        }
       }
     }
+
   }
 
   private def parseTerm(ts: List[Token]): Parsed[Term] = {
@@ -283,7 +322,7 @@ object Parser {
       case LParen => parseExpression(ts.tail) ||> { (expr, t1) =>
         t1.typeOfFirst match {
           case RParen => Success(FACTOR(expr), t1.tail)
-          case _ => Failure("Right Parenthesis Missing")
+          case _ => Failure(errorMessage("factor")(t1.head, ")"))
         }
       }
       case Identifier => Success(IDENTIFIER(ts.head), ts.tail)
@@ -294,7 +333,7 @@ object Parser {
       case Minus => Unary(Minus)
       case True => ???
       case False => ???
-      case _ => Failure("Failed to Parse Factor")
+      case _ => Failure(errorMessage("factor")(ts.head, "(, unary, or primitive"))
     }
   }
 

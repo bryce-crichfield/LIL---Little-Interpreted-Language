@@ -1,10 +1,8 @@
 program
-   define x as 1
-   set x to x - 1
-   define y as 10
-   display(y)
-   while (x && y) do
-        set x to x + 1
-        display(x)
-   end
+    procedure fibonacci takes n does
+        display(n)
+    end
+    define x as fibonacci(n)
+    (2)
+    display(fib)
 end

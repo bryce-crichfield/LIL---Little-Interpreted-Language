@@ -8,6 +8,13 @@ object Model {
 
   sealed trait Statement
 
+  // procedure call needs to be a type of expression
+  case class ProcedureDefinition(IDENTIFIER: IDENTIFIER,
+                                 arguments: List[Argument],
+                                 statements: List[Statement],
+                       ) extends Statement
+  case class Argument(IDENTIFIER: IDENTIFIER)
+  case class ReturnStatement(expression: Expression)
   case class VariableDeclaration(IDENTIFIER1: IDENTIFIER, expression: Expression) extends Statement
 
   case class DisplayStatement(expression: Expression) extends Statement
@@ -26,13 +33,13 @@ object Model {
 
   case class WhileStatement(condition: Expression, actions: List[Statement]) extends Statement
 
-  sealed trait Expression
+  sealed trait Expression extends Statement
 
   sealed trait Term extends Expression
 
   sealed trait Factor extends Term
 
-
+  case class ProcedureCall(IDENTIFIER: IDENTIFIER, arguments: List[Argument]) extends Expression
   case class EXPRESSION(expression: Expression, operator: TokenType, term: Term) extends Expression
 
   case class TERM(term: Term, operator: TokenType, factor: Factor) extends Term

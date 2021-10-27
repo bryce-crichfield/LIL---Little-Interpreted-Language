@@ -28,6 +28,10 @@ object Token {
       case "program" => Program
       case "variables" => Variables
       case "define" => Define
+      case "return" => Return
+      case "does" => Does
+      case "takes" => Takes
+      case "procedure" => Procedure
       case "actions" => Actions
       case "display" => Display
       case "," => Comma
@@ -77,6 +81,14 @@ object Token {
   case object Variables extends TokenType
 
   case object Define extends TokenType
+
+  case object Procedure extends TokenType
+
+  case object Return extends TokenType
+
+  case object Does extends TokenType
+
+  case object Takes extends TokenType
 
   case object Actions extends TokenType
 
