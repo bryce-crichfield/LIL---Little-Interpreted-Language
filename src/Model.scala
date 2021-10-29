@@ -12,7 +12,7 @@ object Model {
                                  statements: List[Statement],
                                 ) extends Statement
 
-  case class Argument(IDENTIFIER: IDENTIFIER)
+  case class Argument(expression: Expression)
 
   case class ReturnStatement(expression: Expression)
 

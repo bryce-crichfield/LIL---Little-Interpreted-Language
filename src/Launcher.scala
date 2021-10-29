@@ -9,7 +9,7 @@ object Launcher extends App {
 
   val load = Source.fromFile(new File(path))
   val tokens = Lexer(load.mkString)
-  tokens.foreach(println)
+//  tokens.foreach(println)
   val program = Parser.parse(tokens)
   program match {
     case Success(targets, _) =>

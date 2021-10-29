@@ -14,4 +14,11 @@ object Lexer {
     matches.map(m => Token(m, number)).toList
   }
 
+  sealed trait Lexer {
+    val captures: List[Token]
+    val stream: List[String]
+  }
+
+  case class Matched(captures: List[])
+
 }

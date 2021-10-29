@@ -82,6 +82,7 @@ object Parser {
         case Failure(msg) => Failure(msg)
       }
     }
+
   }
 
   case class Success[A](targets: List[A], tokens: List[Token]) extends Parsed[A]
@@ -114,7 +115,8 @@ object Parser {
   private def parseVariableDeclaration(ts: List[Token]): Parsed[VariableDeclaration] = {
     ts.typeOfFirst(2) match {
       case List(Identifier, As) =>
-        val id = IDENTIFIER(ts.tail.head.lexeme)
+        val id = IDENTIFIER(ts.head.lexeme)
+        println(id)
         parseExpression(ts.drop(2)) |> { (expression, t1) =>
           VariableDeclaration(id, expression) -> t1
         }
@@ -256,12 +258,12 @@ object Parser {
   }
 
   private def parseArguments(ts: List[Token], arguments: List[Argument] = List.empty): Parsed[Argument] = {
-    ts.typeOfFirst(2) match {
-      case List(Identifier, Comma) =>
-        parseArguments(ts.drop(2), arguments :+ Argument(IDENTIFIER(ts.head)))
-      case List(Identifier, _) =>
-        parseArguments(ts.tail, arguments :+ Argument(IDENTIFIER(ts.head)))
-      case _ => Success(arguments, ts)
+    parseExpression(ts) ||> { (expression, t1) =>
+      t1.typeOfFirst match {
+        case Comma =>
+          parseArguments(t1.tail, arguments :+ Argument(expression))
+        case _ => Success(arguments :+ Argument(expression), t1)
+      }
     }
   }
 

@@ -9,7 +9,6 @@ program
             set b to a + 1
         end
     end
-    define x as fibonacci(n)
-    x + 1
-    display(fib)
+    display(fibonacci(n))
 end
+
