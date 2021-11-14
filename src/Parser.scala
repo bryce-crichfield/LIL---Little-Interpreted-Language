@@ -116,7 +116,6 @@ object Parser {
     ts.typeOfFirst(2) match {
       case List(Identifier, As) =>
         val id = IDENTIFIER(ts.head.lexeme)
-        println(id)
         parseExpression(ts.drop(2)) |> { (expression, t1) =>
           VariableDeclaration(id, expression) -> t1
         }
@@ -153,6 +152,10 @@ object Parser {
           }
         case Procedure =>
           parseProcedure(tokens.tail) ||> { (stmt, ts) =>
+            parseStatements(ts, actions :+ stmt)
+          }
+        case Run =>
+          parseProcedureCall(tokens.tail) ||> { (stmt, ts) =>
             parseStatements(ts, actions :+ stmt)
           }
         case End =>
@@ -245,15 +248,21 @@ object Parser {
 
   private def parseProcedure(ts: List[Token]): Parsed[ProcedureDefinition] = {
     ts.typeOfFirst(2) match {
-      case List(Identifier, Takes) => parseArguments(ts.drop(2)) +||> { (arguments, t1) =>
-        t1.typeOfFirst match {
-          case Does => parseStatements(t1.tail) +|> { (statements, t2) =>
-            ProcedureDefinition(IDENTIFIER(ts.head), arguments, statements) -> t2
+      case List(Identifier, Does) =>
+          parseStatements(ts.drop(2)) +|> { (statements, t2) =>
+            ProcedureDefinition(IDENTIFIER(ts.head), statements) -> t2
           }
-          case _ => Failure(errorMessage("procedure")(t1.head, "does"))
-        }
+      case _ => Failure(errorMessage("procedure")(ts.head, "identifier, or does"))
       }
-      case _ => Failure(errorMessage("procedure")(ts.head, "identifier, takes"))
+  }
+
+  private def parseProcedureCall(ts: List[Token]): Parsed[ProcedureCall] = {
+    ts.typeOfFirst match {
+      case Identifier =>
+        val call = ProcedureCall(IDENTIFIER(ts.head))
+        Success(call, ts.tail)
+      case _ =>
+        Failure(errorMessage("procedure call")(ts.head, "identifier"))
     }
   }
 
@@ -273,12 +282,6 @@ object Parser {
         EXPRESSION(termA, tokenType, termB).asInstanceOf[Expression] -> t2
       }
     ts.typeOfFirst(2) match {
-      case List(Identifier, LParen) => parseArguments(ts.drop(2)) +||> { (arguments, t2) =>
-        t2.typeOfFirst match {
-          case RParen => Success(ProcedureCall(IDENTIFIER(ts.head), arguments), t2.tail)
-          case _ => Failure(errorMessage("procedure call as expression")(t2.head, (")")))
-        }
-      }
       case _ => parseTerm(ts) ||> { (termA, t1) =>
         t1.typeOfFirst match {
           case Plus => Expression(termA, t1, Plus)

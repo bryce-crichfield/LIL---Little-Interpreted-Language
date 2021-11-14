@@ -32,6 +32,8 @@ object Token {
       case "does" => Does
       case "takes" => Takes
       case "procedure" => Procedure
+      case "run" => Run
+      case "function" => Function
       case "actions" => Actions
       case "display" => Display
       case "," => Comma
@@ -84,6 +86,10 @@ object Token {
 
   case object Procedure extends TokenType
 
+  case object Do extends TokenType
+
+  case object Function extends TokenType
+
   case object Return extends TokenType
 
   case object Does extends TokenType
@@ -114,7 +120,7 @@ object Token {
 
   case object While extends TokenType
 
-  case object Do extends TokenType
+  case object Run extends TokenType
 
   case object Or extends TokenType
 

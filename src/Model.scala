@@ -8,9 +8,13 @@ object Model {
 
   // procedure call needs to be a type of expression
   case class ProcedureDefinition(IDENTIFIER: IDENTIFIER,
-                                 arguments: List[Argument],
                                  statements: List[Statement],
                                 ) extends Statement
+
+  case class FunctionDefinition(IDENTIFIER: IDENTIFIER,
+                               arguments: List[Argument],
+                               statements: List[Statement],
+                              ) extends Statement
 
   case class Argument(expression: Expression)
 
@@ -40,7 +44,9 @@ object Model {
 
   sealed trait Factor extends Term
 
-  case class ProcedureCall(IDENTIFIER: IDENTIFIER, arguments: List[Argument]) extends Expression
+  case class ProcedureCall(IDENTIFIER: IDENTIFIER) extends Statement
+  case class FunctionCall(IDENTIFIER: IDENTIFIER) extends Statement
+
 
   case class EXPRESSION(expression: Expression, operator: TokenType, term: Term) extends Expression
 
