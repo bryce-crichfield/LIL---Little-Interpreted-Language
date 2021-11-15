@@ -1,14 +1,19 @@
 program
-    procedure fibonacci takes n does
-            define a as 0
+    define n as 10
+    define result as 0
+
+    procedure fibonacci does
             define b as 1
+            define c as 1
             define i as 1
             while i < n do
-                define c as a
-                set a to b
-                set b to a + 1
+                set result to b
+                set b to c
+                set c to result + b
+                set i to i + 1
             end
-        end
-    display(fibonacci(n))
+    end
+    run fibonacci
+    display(b)
 end
 

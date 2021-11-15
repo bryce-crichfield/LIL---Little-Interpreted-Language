@@ -37,7 +37,7 @@ class Interpreter(program: PROGRAM) {
 
     def set(id: IDENTIFIER, as: Int): Unit = {
       variables.get(id) match {
-        case Some(variable) => put(id, as)
+        case Some(_) => put(id, as)
         case None => parentScope match {
           case Some(scope) => scope.set(id, as)
           case None => throw new RuntimeException(s"ID ${id} does not exist in scope")
