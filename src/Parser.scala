@@ -216,8 +216,11 @@ object Parser {
   private def parseElseIf(ts: List[Token]): Parsed[ElseIfStatement] = {
     ts.typeOfFirst(2) match {
       case List(Else, If) => parseExpression(ts.drop(2)) ||> { (conditional, t1) =>
-        parseStatements(t1) +|> { (actions, t2) =>
-          ElseIfStatement(conditional, actions) -> t2
+        t1.typeOfFirst match {
+          case Then => parseStatements(t1.tail) +|> { (actions, t2) =>
+            ElseIfStatement(conditional, actions) -> t2
+          }
+          case _ => Failure(errorMessage("else if statement")(t1.head, "then"))
         }
       }
       case _ => Null(ts)

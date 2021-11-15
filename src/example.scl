@@ -1,13 +1,7 @@
 program
-    define a as 1
-    define b as 2
-    procedure one does
-        while(a < b) do
-            display(10)
-        end
-    end
-    if(a < b) then
-        run one
-        display(a)
+    define counter as 0
+    while(counter < 10) do
+        set counter to counter + 1
+        display(counter)
     end
 end
