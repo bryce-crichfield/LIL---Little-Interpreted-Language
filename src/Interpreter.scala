@@ -1,8 +1,5 @@
 import Model._
-import Token.{Divide, GrEqThan, GrThan, LsEqThan, LsThan, Minus, Multiply, Negate, Plus, TokenType}
-
-import scala.annotation.tailrec
-import scala.collection.mutable
+import Token.{Divide, GrEqThan, GrThan, LsEqThan, LsThan, Minus, Multiply, Plus, TokenType}
 
 class Interpreter(program: PROGRAM) {
 
@@ -19,6 +16,7 @@ class Interpreter(program: PROGRAM) {
         }
       }
     }
+
     def procedure(id: IDENTIFIER): List[Statement] = {
       procedures.get(id) match {
         case Some(procedure) => procedure
@@ -28,9 +26,11 @@ class Interpreter(program: PROGRAM) {
         }
       }
     }
+
     def put(id: IDENTIFIER, int: Int): Unit = {
       variables += (id -> int)
     }
+
     def put(id: IDENTIFIER, stmts: List[Statement]): Unit = {
       procedures += (id -> stmts)
     }
@@ -54,7 +54,7 @@ class Interpreter(program: PROGRAM) {
 
   // when we enter a scope, we want to grab all the definitions that will exist in that scope
   private def walk(t: List[Statement]): Unit = {
-    if(t.nonEmpty) {
+    if (t.nonEmpty) {
       // get all the defined procedures
       val (ps, tp) = procedures(t)
       val (vs, tv) = variables(tp)
@@ -65,20 +65,17 @@ class Interpreter(program: PROGRAM) {
           println(interpretExpression(expression))
           walk(tv.tail)
         case AssignmentStatement(identifier, expression) =>
-          // simply reassigning the identifier to the expression via the current scope won't work
-          // we need to recurse through the scope and find the declaration of the identifier
-          val evaled = interpretExpression(expression)
-        currentScope.set(identifier, evaled)
-        walk(tv.tail)
+          currentScope.set(identifier, interpretExpression(expression))
+          walk(tv.tail)
         case stmt: IfStatement =>
-         interpretIf(stmt)
+          interpretIf(stmt)
         case ProcedureCall(identifier) =>
           val stmts = currentScope.procedure(identifier)
           walk(stmts)
           walk(tv.tail)
         case WhileStatement(condition, actions) =>
           currentScope = new Scope("while statement", Some(currentScope))
-          if(interpretExpression(condition) == 1) {
+          if (interpretExpression(condition) == 1) {
             walk(actions)
             walk(tv)
           } else {
@@ -86,15 +83,15 @@ class Interpreter(program: PROGRAM) {
             walk(tv.tail)
           }
       }
-      }
     }
+  }
 
   private val interpretExpression: Expression => Int = {
-      case EXPRESSION(expression, operator, term) => expression match {
-        case e: EXPRESSION => matchExpressionOperator(operator, interpretExpression, e, term)
-        case t : Term => matchExpressionOperator(operator, interpretTerm, t, term)
-      }
-      case expression => interpretTerm(expression.asInstanceOf[Term])
+    case EXPRESSION(expression, operator, term) => expression match {
+      case e: EXPRESSION => matchExpressionOperator(operator, interpretExpression, e, term)
+      case t: Term => matchExpressionOperator(operator, interpretTerm, t, term)
+    }
+    case expression => interpretTerm(expression.asInstanceOf[Term])
   }
 
   def matchExpressionOperator[A <: Expression](tokenType: TokenType, interpret: A => Int, a: A, b: A): Int = tokenType match {
@@ -121,24 +118,23 @@ class Interpreter(program: PROGRAM) {
   }
 
 
-
   // Todo: add id support
   private val interpretFactor: Factor => Int = {
-      case id: IDENTIFIER => currentScope.variable(id)
-      case FACTOR(expression) => interpretExpression(expression)
-      case VALUE(value) => value.toInt
-      case UNARY(operator, factor) =>
-        operator match {
-          case Minus => -1 * interpretFactor(factor)
-        }
+    case id: IDENTIFIER => currentScope.variable(id)
+    case FACTOR(expression) => interpretExpression(expression)
+    case VALUE(value) => value.toInt
+    case UNARY(operator, factor) =>
+      operator match {
+        case Minus => -1 * interpretFactor(factor)
+      }
   }
 
   private val interpretIf: IfStatement => Unit = If => {
-    if(interpretExpression(If.condition) == 1) {
+    if (interpretExpression(If.condition) == 1) {
       currentScope = new Scope("if statement", Some(currentScope))
       walk(If.actions)
       currentScope = currentScope.parentScope.get
-    } else if(If.ElseIfStatements.isDefined && If.ElseIfStatements.get.nonEmpty) {
+    } else if (If.ElseIfStatements.isDefined && If.ElseIfStatements.get.nonEmpty) {
       val elseIfs = If.ElseIfStatements.get
       val first = elseIfs.head
       val asIf = IfStatement(first.condition, first.actions, Option(elseIfs.tail), If.ElseStatement)
@@ -158,15 +154,14 @@ class Interpreter(program: PROGRAM) {
   }
 
   private def variables(tree: List[Statement]): (List[VariableDeclaration], List[Statement]) = {
-    val tuple = tree partition(_.isInstanceOf[VariableDeclaration])
+    val tuple = tree partition (_.isInstanceOf[VariableDeclaration])
     tuple._1.map(_.asInstanceOf[VariableDeclaration]) -> tuple._2
   }
 
 
-
   implicit class BooleanOps(b: Boolean) {
     def toInt: Int =
-      if(b) 1
+      if (b) 1
       else 0
   }
 
